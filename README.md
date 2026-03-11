@@ -43,11 +43,7 @@ PartitionKit requires the SwiftUI framework, so only these platforms are support
 1. Decide on what view you would like to have on `Top`, which you would like to have on the `Bottom`, and optionally a `Handle` to be used to drag the partitions to different sizes.
 2. Do This
 ``` Swift
-VPart(top: {
-    MyTopView()
-    }, bottom: {
-    MyBottomView()
-    }) {
+VPart(top: { MyTopView() }, bottom: { MyBottomView() }) {
     MyHandle()
 }
 ```
@@ -57,11 +53,7 @@ VPart(top: {
 1. Decide on what view you would like to have on `Left`, which you would like to have on the `Right`, and optionally a `Handle` to be used to drag the partitions to different sizes.
 2. Do This
 ``` Swift
-HPart(left: {
-    MyLeftView()
-    }, right: {
-    MyRightView()
-    }) {
+HPart(left: { MyLeftView() }, right: { MyRightView() }) {
     MyHandle()
 }
 ```
@@ -71,15 +63,11 @@ HPart(left: {
 1. Decide on what Views will go in each corner: `TopLeft`, `TopRight`, `BottomLeft`, `BottomRight`, and optionally a `Handle` for the user to drag and resize the views with.
 2. Do this
 ``` Swift
-    GridPart(topLeft: {
-        MyTopLeftView()
-        }, topRight: {
-        MyTopRightView()
-        }, bottomLeft: {
-        MyBottomLeftView()
-        }, bottomRight: {
-        MyBottomRightView()
-        }) {
+    GridPart(
+        topLeft: { MyTopLeftView() },
+        topRight: { MyTopRightView() },
+        bottomLeft: { MyBottomLeftView() },
+        bottomRight: { MyBottomRightView() }) {
         MyHandle()
 }
 ```
@@ -265,8 +253,6 @@ Copy and paste this. I have added named pictures for how the views should look. 
 import SwiftUI
 import PartitionKit
 
-
-
 struct ContentView: View {
     var vExample: some View {
         VPart(top: {
@@ -321,7 +307,6 @@ struct ContentView: View {
         
     }
 }
-
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
