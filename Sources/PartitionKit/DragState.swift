@@ -11,7 +11,7 @@ import SwiftUI
 /// Drag State describing the combination of a long press and drag gesture.
 ///  - seealso:
 ///  [Reference]: https://developer.apple.com/documentation/swiftui/gestures/composing_swiftui_gestures "Composing SwiftUI Gestures "
-enum DragState {
+enum DragState: Sendable {
     case inactive
     case pressing
     case dragging(translation: CGSize)
