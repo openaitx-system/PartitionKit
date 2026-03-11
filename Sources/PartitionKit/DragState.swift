@@ -1,11 +1,10 @@
 //
-//  File.swift
-//  
+//  DragState.swift
+//
 //
 //  Created by Kieran Brown on 10/26/19.
 //
 
-import Foundation
 import SwiftUI
 
 /// Drag State describing the combination of a long press and drag gesture.

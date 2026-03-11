@@ -5,7 +5,6 @@
 //  Created by Kieran Brown on 10/26/19.
 //
 
-import Foundation
 import SwiftUI
 
 /// # Vertical Partition
@@ -37,63 +36,91 @@ import SwiftUI
     public var pctSplit: CGFloat = 0.5
     var paddingFactor: CGFloat = 0.9
     
-    // dragState and viewState are also taken directly froms Apples "Composing SwiftUI Gestures"
     @GestureState private var dragState = DragState.inactive
     @State var viewState = CGSize.zero
-    
+
+    @Environment(\._partitionHandleStyle) private var handleStyle
+    @Environment(\._partitionHandleSize) private var environmentHandleSize
+    @Environment(\._partitionLongPressDuration) private var environmentLongPressDuration
+
+    /// The effective handle size, preferring the environment value when set.
+    var effectiveHandleSize: CGSize { environmentHandleSize ?? handleSize }
+    /// The effective long press duration, preferring the environment value when set.
+    var effectiveLongPressDuration: Double { environmentLongPressDuration ?? minimumLongPressDuration }
+
+    // The maximum offset so that neither pane has a negative height.
+    // top height = paddingFactor * pctSplit * height + offset  >= 0  →  offset >= -paddingFactor * pctSplit * height
+    // bottom height = paddingFactor * (1-pctSplit) * height - offset >= 0  →  offset <= paddingFactor * (1-pctSplit) * height
+    func clampedOffset(_ offset: CGFloat, in height: CGFloat) -> CGFloat {
+        let minOffset = -paddingFactor * pctSplit * height
+        let maxOffset =  paddingFactor * (1 - pctSplit) * height
+        return min(max(offset, minOffset), maxOffset)
+    }
+
     // A bit of a convienence so I dont have to write this again and again.
     var currentOffset: CGFloat {
         viewState.height + dragState.translation.height
     }
+
+    /// The public drag state derived from the internal gesture state.
+    var publicDragState: PartitionDragState {
+        switch dragState {
+        case .inactive: return .inactive
+        case .pressing: return .pressing
+        case .dragging: return .dragging
+        }
+    }
     
     /// Creates the `Handle` and adds the drag gesture to it.
-    func generateHandle() -> some View {
-        // This gesture sequence is also directly from apples "Composing SwiftUI Gestures"
-        let longPressDrag = LongPressGesture(minimumDuration: minimumLongPressDuration)
+    func generateHandle(in height: CGFloat) -> some View {
+        let longPressDrag = LongPressGesture(minimumDuration: effectiveLongPressDuration)
             .sequenced(before: DragGesture())
             .updating($dragState) { value, state, transaction in
                 switch value {
-                    // Long press begins.
                 case .first(true):
                     state = .pressing
-                    // Long press confirmed, dragging may begin.
                 case .second(true, let drag):
                     state = .dragging(translation: drag?.translation ?? .zero)
-                    // Dragging ended or the long press cancelled.
                 default:
                     state = .inactive
                 }
             }
             .onEnded { value in
                 guard case .second(true, let drag?) = value else { return }
-                viewState.height += drag.translation.height
-                viewState.width += drag.translation.width
+                let proposed = viewState.height + drag.translation.height
+                viewState.height = clampedOffset(proposed, in: height)
+                viewState.width = 0
             }
-        
-        // MARK: Customize Handle Here
-        // Add the gestures and visuals to the handle
-        return handle
-            .overlay(dragState.isDragging ? Circle().stroke(Color.white, lineWidth: 2) : nil)
-            .foregroundColor(.white)
-            .frame(width: handleSize.width, height: handleSize.height, alignment: .center)
-            .offset(x: 0, y: currentOffset)
+
+        let configuration = PartitionHandleStyleConfiguration(
+            handle: AnyView(handle),
+            dragState: publicDragState
+        )
+
+        return handleStyle.makeBody(configuration: configuration)
+            .frame(width: effectiveHandleSize.width, height: effectiveHandleSize.height, alignment: .center)
+            .offset(x: 0, y: clampedOffset(currentOffset, in: height))
             .gesture(longPressDrag)
+            .environment(\.partitionDragState, publicDragState)
     }
-    
+
     public var body: some View {
         GeometryReader { (proxy: GeometryProxy) in
             VStack {
                 let height = proxy.frame(in: .local).height
-                
+                let offset = clampedOffset(currentOffset, in: height)
+
                 top
-                    .frame(height: paddingFactor * pctSplit * height + currentOffset)
-                
+                    .frame(height: paddingFactor * pctSplit * height + offset)
+                    .environment(\.partitionDragState, publicDragState)
+
                 Divider()
-                
+
                 bottom
-                    .frame(height: paddingFactor * (1-pctSplit) * height - currentOffset)
+                    .frame(height: paddingFactor * (1 - pctSplit) * height - offset)
+                    .environment(\.partitionDragState, publicDragState)
             }
-            .overlay(generateHandle(), alignment: .center)
+            .overlay(generateHandle(in: proxy.frame(in: .local).height), alignment: .center)
         }
     }
 }
@@ -163,4 +190,3 @@ extension VPart where Top: View, Bottom: View, Handle == Capsule {
     }
     
 }
-

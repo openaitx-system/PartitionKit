@@ -5,11 +5,9 @@
 //  Created by Kieran Brown on 10/26/19.
 //
 
-import Foundation
 import SwiftUI
 
-/// # Draws a Crosshair
-/// Works pretty well with grid partitions but doesnt make sense for the vertical and horizontal partitions.
+/// Draws a crosshair that works well as a handle for `GridPart`.
 public struct CrossHair: View {
     var color: Color
     var length: CGFloat
