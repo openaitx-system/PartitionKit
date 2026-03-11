@@ -1,13 +1,12 @@
 //
 //  GridPartition.swift
-//  
+//
 //
 //  Created by Kieran Brown on 10/26/19.
 //
 
 import Foundation
 import SwiftUI
-
 
 /// # Grid Partition
 /// Creates a flexible container view with four separate partitions and a draggable `Handle` in the center.
@@ -31,11 +30,8 @@ import SwiftUI
 ///
 ///```
 ///
-///
-///
 /// Optionally the user may specify a specific view to be used as the `Handle` otherwise the View `CrossHair` will be used as default
-@available(iOS 13.0, macOS 10.15, watchOS 6.0 , tvOS 13.0, *)
-public struct GridPart<TopLeft, TopRight, BottomLeft, BottomRight, Handle> where TopLeft: View , TopRight: View, BottomLeft: View, BottomRight:View, Handle: View {
+@MainActor public struct GridPart<TopLeft, TopRight, BottomLeft, BottomRight, Handle> where TopLeft: View , TopRight: View, BottomLeft: View, BottomRight:View, Handle: View {
     
     public var topLeft: TopLeft
     public var topRight: TopRight
@@ -56,76 +52,81 @@ public struct GridPart<TopLeft, TopRight, BottomLeft, BottomRight, Handle> where
     
     // A bit of a convienence so I dont have to write this again and again.
     var currentOffset: CGSize {
-        CGSize(width: viewState.width+dragState.translation.width,
-               height: viewState.height+dragState.translation.height)
+        CGSize(width: viewState.width + dragState.translation.width,
+               height: viewState.height + dragState.translation.height)
     }
-    
     
     /// Creates the `Handle` and adds the drag gesture to it.
     func generateHandle() -> some View {
-        
         // This gesture sequence is also directly from apples "Composing SwiftUI Gestures"
         let longPressDrag = LongPressGesture(minimumDuration: minimumLongPressDuration)
             .sequenced(before: DragGesture())
             .updating($dragState) { value, state, transaction in
                 switch value {
-                // Long press begins.
+                    // Long press begins.
                 case .first(true):
                     state = .pressing
-                // Long press confirmed, dragging may begin.
+                    // Long press confirmed, dragging may begin.
                 case .second(true, let drag):
                     state = .dragging(translation: drag?.translation ?? .zero)
-                // Dragging ended or the long press cancelled.
+                    // Dragging ended or the long press cancelled.
                 default:
                     state = .inactive
                 }
-        }
-        .onEnded { value in
-            guard case .second(true, let drag?) = value else { return }
-            self.viewState.height += drag.translation.height
-            self.viewState.width += drag.translation.width
-            
-        }
+            }
+            .onEnded { value in
+                guard case .second(true, let drag?) = value else { return }
+                viewState.height += drag.translation.height
+                viewState.width += drag.translation.width
+            }
         
         // MARK: Customize Handle Here
         // Add the gestures and visuals to the handle
-        return handle.overlay(dragState.isDragging ? Circle().stroke(Color.white, lineWidth: 2) : nil)
+        return handle
+            .overlay(dragState.isDragging ? Circle().stroke(Color.white, lineWidth: 2) : nil)
             .foregroundColor(.white)
             .frame(width: handleSize.width, height: handleSize.height, alignment: .center)
             .offset(currentOffset)
-            .animation(.linear)
             .gesture(longPressDrag)
     }
     
-    
-    // MARK: Money Shot
     public var body: some View {
         GeometryReader { (proxy: GeometryProxy) in
             VStack {
+                let height = proxy.frame(in: .local).height
+                let width = proxy.frame(in: .local).width
+                
                 // Top
                 HStack {
-                    self.topLeft
-                        .frame(width: self.paddingFactor*(self.pctSplit.width*proxy.frame(in: .local).width) + self.currentOffset.width)
+                    topLeft
+                        .frame(width: paddingFactor * pctSplit.width * width + currentOffset.width)
+                    
                     Divider()
-                    self.topRight
-                        .frame(width: self.paddingFactor*((1-self.pctSplit.width)*proxy.frame(in: .local).width) - self.currentOffset.width)
-                }.frame(height: self.paddingFactor*(self.pctSplit.height*proxy.frame(in: .local).height) + self.currentOffset.height)
+                    
+                    topRight
+                        .frame(width: paddingFactor * (1-pctSplit.width) * width - currentOffset.width)
+                }
+                .frame(height: paddingFactor * pctSplit.height * height + currentOffset.height)
+                
                 Divider()
+                
                 // Bottom
                 HStack {
-                    self.bottomLeft
-                        .frame(width: self.paddingFactor*(self.pctSplit.width*proxy.frame(in: .local).width) + self.currentOffset.width)
+                    bottomLeft
+                        .frame(width: paddingFactor * pctSplit.width * width + currentOffset.width)
+                    
                     Divider()
-                    self.bottomRight
-                        .frame(width: self.paddingFactor*((1-self.pctSplit.width)*proxy.frame(in: .local).width) - self.currentOffset.width)
-                }.frame(height: self.paddingFactor*((1-self.pctSplit.height)*proxy.frame(in: .local).height) - self.currentOffset.height)
-            }.overlay(self.generateHandle(), alignment: .center)
+                    
+                    bottomRight
+                        .frame(width: paddingFactor * (1-pctSplit.width) * width - currentOffset.width)
+                }
+                .frame(height: paddingFactor * (1-pctSplit.height) * height - currentOffset.height)
+            }
+            .overlay(generateHandle(), alignment: .center)
         }
     }
 }
 
-
-@available(iOS 13.0, macOS 10.15, watchOS 6.0 , tvOS 13.0, *)
 extension GridPart: View where TopLeft:View, TopRight: View, BottomLeft: View, BottomRight: View, Handle: View {
     
     /// # GridPartition With Custom Handle
@@ -143,7 +144,6 @@ extension GridPart: View where TopLeft:View, TopRight: View, BottomLeft: View, B
         self.handle = handle()
     }
     
-    
     /// # GridPartition With Custom Handle
     /// - parameters:
     ///   - pctSplit The inital percentage size each partition should take up
@@ -152,7 +152,7 @@ extension GridPart: View where TopLeft:View, TopRight: View, BottomLeft: View, B
     ///   - bottomLeft Any type of View within a closure.
     ///   - bottomLeft Any type of View within a closure.
     ///   - handle Any type of View within a closure, This is the view that the user will drag to resize all the others.
-    @inlinable public init(pctSplit: CGSize, @ViewBuilder topLeft: () -> TopLeft, @ViewBuilder topRight: () -> TopRight,@ViewBuilder  bottomLeft: () -> BottomLeft, @ViewBuilder bottomRight: () -> BottomRight, @ViewBuilder handle: () -> Handle ) {
+    @inlinable public init(pctSplit: CGSize, @ViewBuilder topLeft: () -> TopLeft, @ViewBuilder topRight: () -> TopRight, @ViewBuilder  bottomLeft: () -> BottomLeft, @ViewBuilder bottomRight: () -> BottomRight, @ViewBuilder handle: () -> Handle ) {
         self.pctSplit = pctSplit
         self.topLeft = topLeft()
         self.topRight = topRight()
@@ -162,9 +162,7 @@ extension GridPart: View where TopLeft:View, TopRight: View, BottomLeft: View, B
     }
 }
 
-@available(iOS 13.0, macOS 10.15, watchOS 6.0 , tvOS 13.0, *)
 extension GridPart where Handle == CrossHair, TopLeft:View, TopRight: View, BottomLeft: View, BottomRight: View {
-    
     
     /// # GridPartition With Crosshair Handle
     /// A slight convienence because you do not have to specify a handle, the default  `CrossHair` is used instead.
@@ -184,7 +182,6 @@ extension GridPart where Handle == CrossHair, TopLeft:View, TopRight: View, Bott
         self.handle = CrossHair()
     }
     
-    
     /// # GridPartition With Crosshair Handle
     /// A slight convienence because you do not have to specify a handle, the default  `CrossHair` is used instead.
     ///
@@ -197,7 +194,7 @@ extension GridPart where Handle == CrossHair, TopLeft:View, TopRight: View, Bott
     ///
     /// Uses the default `CrossHair` as the `Handle`.
     @inlinable public init(pctSplit: CGSize, @ViewBuilder topLeft: () -> TopLeft, @ViewBuilder topRight: () -> TopRight,@ViewBuilder  bottomLeft: () -> BottomLeft, @ViewBuilder bottomRight: () -> BottomRight) {
-        self.pctSplit = pctSplit    
+        self.pctSplit = pctSplit
         self.topLeft = topLeft()
         self.topRight = topRight()
         self.bottomLeft = bottomLeft()

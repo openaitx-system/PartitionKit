@@ -1,13 +1,12 @@
 //
 //  HPartition.swift
-//  
+//
 //
 //  Created by Kieran Brown on 10/26/19.
 //
 
 import Foundation
 import SwiftUI
-
 
 /// # Horizontal Partition
 ///
@@ -27,8 +26,7 @@ import SwiftUI
 ///  }
 ///  ```
 ///
-@available(iOS 13.0, macOS 10.15, watchOS 6.0 , tvOS 13.0, *)
-public struct HPart<Left, Right, Handle> where Left: View, Right: View, Handle: View {
+@MainActor public struct HPart<Left, Right, Handle> where Left: View, Right: View, Handle: View {
     public var left: Left
     public var right: Right
     public var handle: Handle
@@ -45,9 +43,8 @@ public struct HPart<Left, Right, Handle> where Left: View, Right: View, Handle: 
     
     // A bit of a convienence so I dont have to write this again and again.
     var currentOffset: CGFloat {
-        viewState.width+dragState.translation.width
+        viewState.width + dragState.translation.width
     }
-    
     
     /// Creates the `Handle` and adds the drag gesture to it.
     func generateHandle() -> some View {
@@ -57,49 +54,47 @@ public struct HPart<Left, Right, Handle> where Left: View, Right: View, Handle: 
             .sequenced(before: DragGesture())
             .updating($dragState) { value, state, transaction in
                 switch value {
-                // Long press begins.
+                    // Long press begins.
                 case .first(true):
                     state = .pressing
-                // Long press confirmed, dragging may begin.
+                    // Long press confirmed, dragging may begin.
                 case .second(true, let drag):
                     state = .dragging(translation: drag?.translation ?? .zero)
-                // Dragging ended or the long press cancelled.
+                    // Dragging ended or the long press cancelled.
                 default:
                     state = .inactive
                 }
-        }
-        .onEnded { value in
-            guard case .second(true, let drag?) = value else { return }
-            self.viewState.height += drag.translation.height
-            self.viewState.width += drag.translation.width
-            
-        }
+            }
+            .onEnded { value in
+                guard case .second(true, let drag?) = value else { return }
+                viewState.height += drag.translation.height
+                viewState.width += drag.translation.width
+            }
         
         // MARK: Customize Handle Here
         // Add the gestures and visuals to the handle
-        return handle.overlay(dragState.isDragging ? Circle().stroke(Color.white, lineWidth: 2) : nil)
+        return handle
+            .overlay(dragState.isDragging ? Circle().stroke(Color.white, lineWidth: 2) : nil)
             .foregroundColor(.white)
             .frame(width: handleSize.width, height: handleSize.height, alignment: .center)
             .offset(x: currentOffset, y: 0)
-            .animation(.linear)
             .gesture(longPressDrag)
     }
     
-    
-    
-    
-    // MARK: Money Shot
     public var body: some View {
         GeometryReader { (proxy: GeometryProxy) in
             HStack {
-                self.left
-                    .frame(width: self.paddingFactor*(self.pctSplit*proxy.frame(in: .local).width) + self.currentOffset)
-                .animation(.linear)
+                let width = proxy.frame(in: .local).width
+                
+                left
+                    .frame(width: paddingFactor * pctSplit * width + currentOffset)
+                
                 Divider()
-                self.right
-                    .frame(width: self.paddingFactor*((1-self.pctSplit)*proxy.frame(in: .local).width) - self.currentOffset)
-                    .animation(.linear)
-            }.overlay(self.generateHandle(), alignment: .center)
+                
+                right
+                    .frame(width: paddingFactor * (1-pctSplit) * width - currentOffset)
+            }
+            .overlay(generateHandle(), alignment: .center)
         }
     }
 }
@@ -108,10 +103,7 @@ public struct HPart<Left, Right, Handle> where Left: View, Right: View, Handle: 
 
 // MARK: Init
 
-
-@available(iOS 13.0, macOS 10.15, watchOS 6.0 , tvOS 13.0, *)
 extension HPart: View where Left: View, Right: View, Handle: View {
-    
     
     /// # Horizontal Partition With Custom Handle
     ///
@@ -124,7 +116,6 @@ extension HPart: View where Left: View, Right: View, Handle: View {
         self.right = right()
         self.handle = handle()
     }
-    
     
     /// # Horizontal Partition With Custom Handle
     ///
@@ -139,13 +130,9 @@ extension HPart: View where Left: View, Right: View, Handle: View {
         self.right = right()
         self.handle = handle()
     }
-    
 }
 
-
-@available(iOS 13.0, macOS 10.15, watchOS 6.0 , tvOS 13.0, *)
 extension HPart where Left: View, Right: View, Handle == Capsule {
-    
     
     /// # Horizontal Partition With Default Handle
     ///
@@ -160,7 +147,6 @@ extension HPart where Left: View, Right: View, Handle == Capsule {
         self.right = right()
         self.handle = Capsule()
     }
-    
     
     /// # Horizontal Partition With Default Handle
     ///
