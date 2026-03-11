@@ -329,11 +329,3 @@ struct ContentView_Previews: PreviewProvider {
     }
 }
 ```
-
-
-
-## Todo
-* ~~Add in constraints so that partitions will not cause negative frame values that invert the views when the handle is dragged beyond the frame of the container~~ ✅
-* ~~Add more customizability to initial layouts~~ ✅
-* ~~Add a `List` style grid collection layout that can be initiated with a list of Identifiable data elements~~ ✅
-* ~~General cleanup~~ ✅
